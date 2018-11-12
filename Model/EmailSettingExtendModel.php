@@ -12,12 +12,30 @@
 namespace MauticPlugin\MauticExtendeeEmailSettingBundle\Model;
 
 use Mautic\CoreBundle\Model\AbstractCommonModel;
+use Mautic\EmailBundle\Entity\Email;
 use MauticPlugin\MauticExtendeeEmailSettingBundle\Entity\EmailSettingExtend;
 use MauticPlugin\MauticRecommenderBundle\Entity\EventRepository;
 use MauticPlugin\MauticRecommenderBundle\Entity\RecommenderTemplateRepository;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 class EmailSettingExtendModel extends AbstractCommonModel
 {
+
+    /**
+     * @var RequestStack
+     */
+    private $requestStack;
+
+    /**
+     * EmailSettingExtendModel constructor.
+     *
+     * @param RequestStack $requestStack
+     */
+    public function __construct(RequestStack $requestStack)
+    {
+
+        $this->requestStack = $requestStack;
+    }
 
     /**
      * {@inheritdoc}
@@ -32,6 +50,28 @@ class EmailSettingExtendModel extends AbstractCommonModel
         $repo->setTranslator($this->translator);
 
         return $repo;
+    }
+
+    /**
+     * Add or edit email settings entity based on request
+     *
+     * @param Email $email
+     */
+    public function addOrEditEntity(Email $email)
+    {
+        $toAddress = $this->requestStack->getCurrentRequest()->get('toAddress');
+        $ccAddress = $this->requestStack->getCurrentRequest()->get('ccAddress');
+
+        $settingsExtend = $this->getRepository()->findOneBy(['email'=>$email]);
+
+        if (!$settingsExtend) {
+            $settingsExtend = new EmailSettingExtend();
+            $settingsExtend->setEmail($email);
+        }
+
+        $settingsExtend->setToAddress($toAddress);
+        $settingsExtend->setCcAddress($ccAddress);
+        $this->getRepository()->saveEntity($settingsExtend);
     }
 
 }

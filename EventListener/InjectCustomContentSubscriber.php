@@ -23,6 +23,7 @@ use MauticPlugin\MauticExtendeeAnalyticsBundle\Integration\EAnalyticsIntegration
 use MauticPlugin\MauticExtendeeEmailSettingBundle\Entity\EmailSettingExtend;
 use MauticPlugin\MauticExtendeeEmailSettingBundle\Model\EmailSettingExtendModel;
 use Symfony\Component\Form\FormView;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Translation\TranslatorInterface;
 
@@ -40,16 +41,23 @@ class InjectCustomContentSubscriber extends CommonSubscriber
     private $emailSettingExtendModel;
 
     /**
+     * @var RequestStack
+     */
+    private $requestStack;
+
+    /**
      * InjectCustomContentSubscriber constructor.
      *
      * @param TemplatingHelper        $templatingHelper
      * @param EmailSettingExtendModel $emailSettingExtendModel
+     * @param RequestStack            $requestStack
      */
-    public function __construct(TemplatingHelper $templatingHelper, EmailSettingExtendModel $emailSettingExtendModel)
+    public function __construct(TemplatingHelper $templatingHelper, EmailSettingExtendModel $emailSettingExtendModel, RequestStack $requestStack)
     {
 
         $this->templatingHelper = $templatingHelper;
         $this->emailSettingExtendModel = $emailSettingExtendModel;
+        $this->requestStack = $requestStack;
     }
 
     public static function getSubscribedEvents()
@@ -74,12 +82,11 @@ class InjectCustomContentSubscriber extends CommonSubscriber
         }
 
         $passParams = ['form'=>$parameters['form']];
-        $passParams['toAddress'] = '';
-        $passParams['ccAddress'] = '';
-
+        $passParams['toAddress'] = $this->requestStack->getCurrentRequest()->get('toAddress');
+        $passParams['ccAddress'] = $this->requestStack->getCurrentRequest()->get('ccAddress');
         /** @var EmailSettingExtend $emailSettings */
         $emailSettings = $this->emailSettingExtendModel->getRepository()->findOneBy(['email'=> $parameters['email']]);
-        if ($emailSettings instanceof EmailSettingExtend) {
+        if ($emailSettings instanceof EmailSettingExtend && $this->requestStack->getCurrentRequest()->getMethod() !== 'POST') {
             $passParams['toAddress'] = $emailSettings->getToAddress();
             $passParams['ccAddress'] = $emailSettings->getCcAddress();
         }

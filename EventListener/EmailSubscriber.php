@@ -14,8 +14,10 @@ namespace MauticPlugin\MauticExtendeeEmailSettingBundle\EventListener;
 use Mautic\CoreBundle\EventListener\CommonSubscriber;
 use Mautic\EmailBundle\EmailEvents;
 use Mautic\EmailBundle\Event as Events;
-use MauticPlugin\MauticExtendeeEmailSettingBundle\Entity\EmailSettingExtend;
+use Mautic\EmailBundle\Helper\MailHelper;
+use Mautic\LeadBundle\Entity\Lead;
 use MauticPlugin\MauticExtendeeEmailSettingBundle\Model\EmailSettingExtendModel;
+use MauticPlugin\MauticExtendeeEmailSettingBundle\Service\EmailSendEventModify;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
@@ -23,6 +25,10 @@ use Symfony\Component\HttpFoundation\RequestStack;
  */
 class EmailSubscriber extends CommonSubscriber
 {
+    protected $from;
+
+    protected $contactFields;
+
     /**
      * @var EmailSettingExtendModel
      */
@@ -33,17 +39,29 @@ class EmailSubscriber extends CommonSubscriber
      */
     private $requestStack;
 
+    /** @var  MailHelper */
+    private $mailHelper;
+
+    /** @var  Lead */
+    private $contact;
+
+
+    /**
+     * @var EmailSendEventModify
+     */
+    private $emailSendEventModify;
+
     /**
      * EmailSubscriber constructor.
      *
      * @param EmailSettingExtendModel $emailSettingExtendModel
-     * @param RequestStack            $requestStack
+     * @param EmailSendEventModify    $emailSendEventModify
      */
-    public function __construct(EmailSettingExtendModel $emailSettingExtendModel, RequestStack $requestStack)
+    public function __construct(EmailSettingExtendModel $emailSettingExtendModel, EmailSendEventModify $emailSendEventModify)
     {
 
         $this->emailSettingExtendModel = $emailSettingExtendModel;
-        $this->requestStack = $requestStack;
+        $this->emailSendEventModify = $emailSendEventModify;
     }
 
     /**
@@ -54,6 +72,7 @@ class EmailSubscriber extends CommonSubscriber
         return [
             EmailEvents::EMAIL_POST_SAVE   => ['onEmailPostSave', 0],
             EmailEvents::EMAIL_POST_DELETE => ['onEmailDelete', 0],
+            EmailEvents::EMAIL_ON_SEND => ['onEmailSend', 0],
         ];
     }
 
@@ -64,7 +83,7 @@ class EmailSubscriber extends CommonSubscriber
      */
     public function onEmailPostSave(Events\EmailEvent $event)
     {
-        $this->addOrEdit($event->getEmail());
+        $this->emailSettingExtendModel->addOrEditEntity($event->getEmail());
     }
     /**
      * Add a delete entry to the audit log.
@@ -79,25 +98,13 @@ class EmailSubscriber extends CommonSubscriber
             $this->emailSettingExtendModel->getRepository()->deleteEntity($settingsExtend);
         }
     }
-
     /**
-     * Add or edit extended settings entity
+     * Add an unsubscribe email to the List-Unsubscribe header if applicable.
      *
-     * @param $email
+     * @param EmailSendEvent $event
      */
-    private function addOrEdit($email)
+    public function onEmailSend(Events\EmailSendEvent $event)
     {
-        $toAddress = $this->requestStack->getCurrentRequest()->get('toAddress');
-        $ccAddress = $this->requestStack->getCurrentRequest()->get('ccAddress');
-
-        $settingsExtend = $this->emailSettingExtendModel->getRepository()->findOneBy(['email'=>$email]);
-        if (!$settingsExtend) {
-            $settingsExtend = new EmailSettingExtend();
-            $settingsExtend->setEmail($email);
-        }
-
-        $settingsExtend->setToAddress($toAddress);
-        $settingsExtend->setCcAddress($ccAddress);
-        $this->emailSettingExtendModel->getRepository()->saveEntity($settingsExtend);
+        $this->emailSendEventModify->setCustomAddresses($event);
     }
 }
