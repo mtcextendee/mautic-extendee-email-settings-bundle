@@ -1,0 +1,7 @@
+{
+  "name": "kuzmany/mautic-extendee-email-setting-bundle",
+  "type": "mautic-plugin",
+  "require": {
+    "mautic/composer-plugin": "^1.0"
+  }
+}
