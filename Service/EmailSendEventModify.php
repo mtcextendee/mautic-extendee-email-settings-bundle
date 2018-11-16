@@ -144,14 +144,18 @@ class EmailSendEventModify
     {
         /** @var EmailSettingExtend $emailSettings */
         $emailSettings = $this->emailSettingExtendModel->getRepository()->findOneBy(['email'=>$this->email]);
-        return $emailSettings->getToAddress();
+        if ($emailSettings) {
+            return $emailSettings->getToAddress();
+        }
     }
 
     private function getCcAddress()
     {
         /** @var EmailSettingExtend $emailSettings */
         $emailSettings = $this->emailSettingExtendModel->getRepository()->findOneBy(['email'=>$this->email]);
-        return $emailSettings->getCcAddress();
+        if ($emailSettings) {
+            return $emailSettings->getCcAddress();
+        }
     }
 
     private function getEmailCustomSettings()
