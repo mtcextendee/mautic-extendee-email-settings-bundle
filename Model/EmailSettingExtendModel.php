@@ -59,8 +59,8 @@ class EmailSettingExtendModel extends AbstractCommonModel
      */
     public function addOrEditEntity(Email $email)
     {
-        $toAddress = $this->requestStack->getCurrentRequest()->get('toAddress');
-        $ccAddress = $this->requestStack->getCurrentRequest()->get('ccAddress');
+        $toAddress = $this->requestStack->getCurrentRequest()->get('toAddress', '');
+        $ccAddress = $this->requestStack->getCurrentRequest()->get('ccAddress', '');
 
         $settingsExtend = $this->getRepository()->findOneBy(['email'=>$email]);
 
